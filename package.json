@@ -1,0 +1,24 @@
+{
+  "name": "voice-hud",
+  "version": "1.4.0",
+  "description": "Direct UDP WebRTC Voice HUD",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.voicehud.p2p",
+    "productName": "VoiceHUD",
+    "win": {
+      "target": "portable"
+    }
+  }
+}

@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoiceHUD</title>
+<style>
+:root {
+  --bg-main: #F4F3EE;
+  --bg-panel: #FAF9F5;
+  --bg-muted: #EBE8E0;
+  --bg-hover: #E2DED3;
+  --border: #DFDCD2;
+  --border-strong: #C9C5B8;
+  --text-main: #141413;
+  --text-dim: #66655F;
+  --text-faint: #98968E;
+  --accent: #D97757;
+  --accent-hover: #C46345;
+  --accent-soft: rgba(217, 119, 87, 0.14);
+  --green: #2E7D47;
+  --green-soft: rgba(46, 125, 71, 0.16);
+  --danger: #C64630;
+  --danger-soft: rgba(198, 70, 48, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.hud-titlebar {
+  height: 34px;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 12px;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13.5px;
+  color: var(--text-main);
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent);
+}
+
+.brand-sub {
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  background-color: var(--bg-muted);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.win-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn {
+  height: 22px;
+  min-width: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.win-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-main);
+}
+
+.win-btn.pinned {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.win-btn.close:hover {
+  background-color: var(--danger);
+  color: #FFFFFF;
+}
+
+.connect-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px;
+  padding: 8px 10px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.my-id-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0 9px;
+  height: 30px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.my-id-pill:hover {
+  background-color: var(--bg-hover);
+}
+
+.my-id-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.my-id-val {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.code-input {
+  height: 30px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-main);
+  outline: none;
+  width: 100%;
+}
+
+.code-input::placeholder {
+  font-family: -apple-system, sans-serif;
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+}
+
+.code-input:focus {
+  border-color: var(--accent);
+  background-color: #FFFFFF;
+}
+
+.action-btn {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: none;
+  background-color: var(--accent);
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.action-btn:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-btn.disconnect-mode {
+  background-color: var(--danger);
+}
+
+.toolbar-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 7px 10px;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tool-btn {
+  height: 29px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.14s ease;
+}
+
+.tool-btn:hover {
+  background-color: var(--bg-muted);
+}
+
+.tool-btn.active-good {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tool-btn.active-muted {
+  background-color: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.devices-drawer {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.devices-drawer.open {
+  display: flex;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.device-row span {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 65px;
+}
+
+.device-select {
+  flex: 1;
+  height: 25px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11.5px;
+  color: var(--text-main);
+  padding: 0 6px;
+  outline: none;
+}
+
+.tree-workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tree-workspace::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tree-workspace::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+
+.channel-box {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.channel-header {
+  padding: 8px 11px;
+  background-color: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-title {
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.channel-meta {
+  font-family: Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.tree-list {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tree-node {
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-main);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.08s ease, background-color 0.08s ease, box-shadow 0.08s ease;
+}
+
+.tree-node.talking {
+  border-color: var(--green);
+  background-color: var(--green-soft);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+.node-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.talk-led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--border-strong);
+  transition: transform 0.08s ease, background-color 0.08s ease, box-shadow 0.08s ease;
+}
+
+.tree-node.talking .talk-led {
+  background-color: var(--green);
+  transform: scale(1.25);
+  box-shadow: 0 0 6px var(--green);
+}
+
+.node-id {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.node-role {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.node-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.node-vol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 17px;
+}
+
+.node-vol span {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  min-width: 68px;
+}
+
+.vol-range {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.activation-panel {
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  background-color: var(--bg-muted);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.mode-tab {
+  height: 25px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.mode-tab.active {
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.bind-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bind-info {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.bind-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.bind-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.bind-btn.listening {
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.meter-bar-wrap {
+  position: relative;
+  height: 8px;
+  background-color: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter-bar-fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--green);
+  transition: width 0.03s linear;
+}
+
+.meter-bar-fill.muted-bar {
+  background-color: var(--text-faint);
+}
+
+.hud-footer {
+  height: 24px;
+  background-color: var(--bg-muted);
+  border-top: 1px solid var(--border);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-faint);
+}
+
+.footer-dot.online {
+  background-color: var(--green);
+}
+
+.footer-dot.incall {
+  background-color: var(--accent);
+}
+</style>
+</head>
+<body>
+
+<div class="hud-titlebar">
+  <div class="brand-wrap">
+    <span class="brand-dot"></span>
+    <span>VoiceHUD</span>
+    <span class="brand-sub">1.4 DIRECT</span>
+  </div>
+  <div class="win-actions">
+    <button id="pinBtn" class="win-btn" title="Поверх всех окон">PIN</button>
+    <button id="minBtn" class="win-btn">&#8211;</button>
+    <button id="closeBtn" class="win-btn close">&#10005;</button>
+  </div>
+</div>
+
+<div class="connect-bar">
+  <div id="copyCodeBtn" class="my-id-pill" title="Нажми, чтобы скопировать свой код">
+    <span class="my-id-label">ID</span>
+    <span id="myCodeEl" class="my-id-val">------</span>
+  </div>
+  <input id="remoteInput" class="code-input" type="text" maxlength="6" placeholder="Код друга...">
+  <button id="mainActionBtn" class="action-btn" disabled>Войти</button>
+</div>
+
+<div class="toolbar-strip">
+  <button id="muteBtn" class="tool-btn">Микро: Вкл</button>
+  <button id="deafenBtn" class="tool-btn">Звук: Вкл</button>
+  <button id="noiseBtn" class="tool-btn active-good">Шумодав</button>
+  <button id="loopbackBtn" class="tool-btn">Тест</button>
+  <button id="devBtn" class="tool-btn">Аудио</button>
+</div>
+
+<div id="devicesDrawer" class="devices-drawer">
+  <div class="device-row">
+    <span>Микрофон</span>
+    <select id="micSelect" class="device-select"></select>
+  </div>
+  <div class="device-row">
+    <span>Динамики</span>
+    <select id="spkSelect" class="device-select"></select>
+  </div>
+</div>
+
+<div class="tree-workspace">
+  <div class="channel-box">
+    <div class="channel-header">
+      <div class="channel-title">
+        <span>&#9662;</span>
+        <span id="channelName">Комната ожидания</span>
+      </div>
+      <span id="channelMeta" class="channel-meta">Opus 48kHz • Pure Direct</span>
+    </div>
+    <div id="treeList" class="tree-list"></div>
+  </div>
+</div>
+
+<div class="activation-panel">
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="open">Постоянно</button>
+    <button class="mode-tab" data-mode="ptt">Зажатие (PTT)</button>
+    <button class="mode-tab" data-mode="toggle">Переключатель</button>
+  </div>
+  <div class="bind-row">
+    <span id="bindHintText" class="bind-info">Кнопка активации / мута:</span>
+    <button id="bindKeyBtn" class="bind-btn">Бинд: V</button>
+  </div>
+  <div class="meter-bar-wrap">
+    <div id="meterFill" class="meter-bar-fill"></div>
+  </div>
+</div>
+
+<div class="hud-footer">
+  <div class="footer-status">
+    <span id="footerDot" class="footer-dot"></span>
+    <span id="footerText">Запуск аудиодвижка...</span>
+  </div>
+  <div id="telemetryText">PING: -- ms | 1 В КОМНАТЕ</div>
+</div>
+
+<div id="audioBin" style="display:none;">
+  <audio id="loopbackAudio" autoplay muted></audio>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron');
+
+const pinBtn = document.getElementById('pinBtn');
+const minBtn = document.getElementById('minBtn');
+const closeBtn = document.getElementById('closeBtn');
+const copyCodeBtn = document.getElementById('copyCodeBtn');
+const myCodeEl = document.getElementById('myCodeEl');
+const remoteInput = document.getElementById('remoteInput');
+const mainActionBtn = document.getElementById('mainActionBtn');
+const muteBtn = document.getElementById('muteBtn');
+const deafenBtn = document.getElementById('deafenBtn');
+const noiseBtn = document.getElementById('noiseBtn');
+const loopbackBtn = document.getElementById('loopbackBtn');
+const devBtn = document.getElementById('devBtn');
+const devicesDrawer = document.getElementById('devicesDrawer');
+const micSelect = document.getElementById('micSelect');
+const spkSelect = document.getElementById('spkSelect');
+const channelName = document.getElementById('channelName');
+const treeList = document.getElementById('treeList');
+const modeTabs = document.querySelectorAll('.mode-tab');
+const bindKeyBtn = document.getElementById('bindKeyBtn');
+const bindHintText = document.getElementById('bindHintText');
+const meterFill = document.getElementById('meterFill');
+const footerDot = document.getElementById('footerDot');
+const footerText = document.getElementById('footerText');
+const telemetryText = document.getElementById('telemetryText');
+const audioBin = document.getElementById('audioBin');
+const loopbackAudio = document.getElementById('loopbackAudio');
+
+minBtn.addEventListener('click', () => ipcRenderer.send('win-minimize'));
+closeBtn.addEventListener('click', () => ipcRenderer.send('win-close'));
+pinBtn.addEventListener('click', async () => {
+  const pinned = await ipcRenderer.invoke('win-toggle-top');
+  pinBtn.classList.toggle('pinned', pinned);
+});
+
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80?transport=udp',
+        'turn:openrelay.metered.ca:443?transport=udp',
+        'turn:openrelay.metered.ca:443?transport=tcp'
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ],
+  iceCandidatePoolSize: 4
+};
+
+class SignalingClient {
+  constructor(brokers, onMessage, onStatus) {
+    this.brokers = brokers;
+    this.idx = 0;
+    this.ws = null;
+    this.connected = false;
+    this.subs = new Set();
+    this.onMessage = onMessage;
+    this.onStatus = onStatus;
+    this.keepAliveTimer = null;
+    this.clientId = 'vh14_' + Math.random().toString(36).substring(2, 10);
+    this.connect();
+  }
+
+  encodeLength(len) {
+    const out = [];
+    do {
+      let d = len % 128;
+      len = Math.floor(len / 128);
+      if (len > 0) d |= 128;
+      out.push(d);
+    } while (len > 0);
+    return out;
+  }
+
+  decodeLength(buf, offset) {
+    let mult = 1;
+    let val = 0;
+    let i = offset;
+    let b = 0;
+    do {
+      if (i >= buf.length) return null;
+      b = buf[i++];
+      val += (b & 127) * mult;
+      mult *= 128;
+    } while ((b & 128) !== 0);
+    return { value: val, next: i };
+  }
+
+  encodeStr(str) {
+    const b = new TextEncoder().encode(str);
+    return [(b.length >> 8) & 0xff, b.length & 0xff, ...b];
+  }
+
+  connect() {
+    if (this.ws) {
+      try { this.ws.close(); } catch (e) {}
+    }
+    const url = this.brokers[this.idx % this.brokers.length];
+    try {
+      this.ws = new WebSocket(url, 'mqtt');
+      this.ws.binaryType = 'arraybuffer';
+    } catch (e) {
+      this.reconnect();
+      return;
+    }
+
+    this.ws.onopen = () => {
+      const vh = [0x00, 0x04, 0x4d, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x1e];
+      const pl = this.encodeStr(this.clientId);
+      const rem = vh.length + pl.length;
+      this.ws.send(new Uint8Array([0x10, ...this.encodeLength(rem), ...vh, ...pl]));
+    };
+
+    this.ws.onmessage = (ev) => {
+      const bytes = new Uint8Array(ev.data);
+      let pos = 0;
+      while (pos < bytes.length) {
+        const hdr = bytes[pos];
+        const li = this.decodeLength(bytes, pos + 1);
+        if (!li) break;
+        const end = li.next + li.value;
+        if (end > bytes.length) break;
+
+        const type = hdr & 0xf0;
+        if (type === 0x20) {
+          this.connected = true;
+          if (this.onStatus) this.onStatus(true);
+          this.subs.forEach(t => this.sendSub(t));
+          clearInterval(this.keepAliveTimer);
+          this.keepAliveTimer = setInterval(() => {
+            if (this.connected && this.ws && this.ws.readyState === 1) {
+              this.ws.send(new Uint8Array([0xc0, 0x00]));
+            }
+          }, 18000);
+        } else if (type === 0x30) {
+          let cur = li.next;
+          const tLen = (bytes[cur] << 8) | bytes[cur + 1];
+          cur += 2;
+          const topic = new TextDecoder().decode(bytes.subarray(cur, cur + tLen));
+          cur += tLen;
+          if (((hdr >> 1) & 0x03) > 0) cur += 2;
+          const raw = new TextDecoder().decode(bytes.subarray(cur, end));
+          try {
+            const data = JSON.parse(raw);
+            if (this.onMessage) this.onMessage(topic, data);
+          } catch (e) {}
+        }
+        pos = end;
+      }
+    };
+
+    this.ws.onerror = () => {};
+    this.ws.onclose = () => {
+      this.connected = false;
+      clearInterval(this.keepAliveTimer);
+      if (this.onStatus) this.onStatus(false);
+      this.reconnect();
+    };
+  }
+
+  reconnect() {
+    this.idx++;
+    setTimeout(() => this.connect(), 1200);
+  }
+
+  sendSub(topic) {
+    if (!this.connected || !this.ws || this.ws.readyState !== 1) return;
+    const tb = this.encodeStr(topic);
+    const body = [0x00, 0x01, ...tb, 0x00];
+    this.ws.send(new Uint8Array([0x82, ...this.encodeLength(body.length), ...body]));
+  }
+
+  subscribe(topic) {
+    this.subs.add(topic);
+    this.sendSub(topic);
+  }
+
+  clearSubscriptions() {
+    this.subs.clear();
+  }
+
+  publish(topic, obj) {
+    if (!this.connected || !this.ws || this.ws.readyState !== 1) return;
+    const tb = this.encodeStr(topic);
+    const pb = new TextEncoder().encode(JSON.stringify(obj));
+    const rem = tb.length + pb.length;
+    const hdr = [0x30, ...this.encodeLength(rem)];
+    const pkt = new Uint8Array(hdr.length + rem);
+    pkt.set(hdr, 0);
+    pkt.set(tb, hdr.length);
+    pkt.set(pb, hdr.length + tb.length);
+    this.ws.send(pkt);
+  }
+}
+
+function makeCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 6; i++) {
+    out += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return out;
+}
+
+const myId = makeCode();
+myCodeEl.textContent = myId;
+
+let currentRoom = myId;
+let sigClient = null;
+
+let audioCtx = null;
+let rawMicStream = null;
+let monitorStream = null;
+let micAnalyser = null;
+let micAnalyserBuf = null;
+let micAnalyserSrc = null;
+
+let micMode = localStorage.getItem('vh_mic_mode') || 'open';
+let bindVk = Number(localStorage.getItem('vh_bind_vk')) || 86;
+let bindLabel = localStorage.getItem('vh_bind_label') || 'V';
+let isListeningForBind = false;
+let isBindPressed = false;
+let pttReleaseUntil = 0;
+
+let isMuted = false;
+let isDeafened = false;
+let isNoiseClean = true;
+let isLoopback = false;
+let isSelfTalking = false;
+
+const peers = new Map();
+
+function syncBindUI() {
+  modeTabs.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === micMode);
+  });
+  bindKeyBtn.textContent = 'Бинд: ' + bindLabel;
+  if (micMode === 'open') {
+    bindHintText.textContent = 'Кнопка быстрого мута (вкл/выкл):';
+  } else if (micMode === 'ptt') {
+    bindHintText.textContent = 'Удерживай кнопку для разговора:';
+  } else {
+    bindHintText.textContent = 'Нажми кнопку для вкл/выкл микро:';
+  }
+  ipcRenderer.send('set-bind-vk', bindVk);
+}
+
+syncBindUI();
+
+function roomTopic(code) {
+  return 'voicehud/v14/room/' + code;
+}
+
+function enhanceOpusSdp(sdp) {
+  if (!sdp) return sdp;
+  return sdp.replace(
+    /a=fmtp:(\d+) minptime=10;useinbandfec=1/g,
+    'a=fmtp:$1 minptime=10;ptime=20;maxaveragebitrate=160000;stereo=0;useinbandfec=1;usedtx=0'
+  );
+}
+
+function playFeedbackTone(f1, f2, ms) {
+  if (isDeafened || !audioCtx) return;
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f1, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(f2, audioCtx.currentTime + ms / 1000);
+    g.gain.setValueAtTime(0.045, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + ms / 1000);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + ms / 1000);
+  } catch (e) {}
+}
+
+async function refreshAudioDevices() {
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const curMic = micSelect.value;
+    const curSpk = spkSelect.value;
+    micSelect.innerHTML = '';
+    spkSelect.innerHTML = '';
+
+    devs.forEach(d => {
+      if (d.kind === 'audioinput') {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || 'Микрофон ' + (micSelect.length + 1);
+        micSelect.appendChild(opt);
+      }
+      if (d.kind === 'audiooutput') {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || 'Динамики ' + (spkSelect.length + 1);
+        spkSelect.appendChild(opt);
+      }
+    });
+
+    if (curMic) micSelect.value = curMic;
+    if (curSpk) spkSelect.value = curSpk;
+  } catch (e) {}
+}
+
+async function initAudioEngine(deviceId) {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+      sampleRate: 48000,
+      latencyHint: 'interactive'
+    });
+  }
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+
+  if (rawMicStream) {
+    rawMicStream.getTracks().forEach(t => t.stop());
+  }
+  if (monitorStream) {
+    monitorStream.getTracks().forEach(t => t.stop());
+  }
+  if (micAnalyserSrc) {
+    try { micAnalyserSrc.disconnect(); } catch (e) {}
+  }
+
+  const constraints = {
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: isNoiseClean,
+      autoGainControl: false,
+      channelCount: 1,
+      sampleRate: 48000
+    },
+    video: false
+  };
+
+  if (deviceId) {
+    constraints.audio.deviceId = { exact: deviceId };
+  }
+
+  try {
+    rawMicStream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (e) {
+    rawMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  }
+
+  monitorStream = rawMicStream.clone();
+
+  micAnalyserSrc = audioCtx.createMediaStreamSource(monitorStream);
+  micAnalyser = audioCtx.createAnalyser();
+  micAnalyser.fftSize = 512;
+  micAnalyser.smoothingTimeConstant = 0.25;
+  micAnalyserBuf = new Float32Array(micAnalyser.fftSize);
+
+  const zeroSink = audioCtx.createGain();
+  zeroSink.gain.value = 0.0;
+  micAnalyserSrc.connect(micAnalyser);
+  micAnalyser.connect(zeroSink);
+  zeroSink.connect(audioCtx.destination);
+
+  loopbackAudio.srcObject = rawMicStream;
+  loopbackAudio.muted = !isLoopback;
+  loopbackAudio.play().catch(() => {});
+
+  const outTrack = rawMicStream.getAudioTracks()[0];
+  if (outTrack) {
+    updateMicTransmissionState();
+    peers.forEach(p => {
+      if (p.pc) {
+        const sender = p.pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+        if (sender) {
+          sender.replaceTrack(outTrack).catch(() => {});
+        }
+      }
+    });
+  }
+}
+
+function isMicAllowedToTransmit() {
+  if (isDeafened) return false;
+  if (micMode === 'ptt') {
+    return isBindPressed || (performance.now() < pttReleaseUntil);
+  }
+  return !isMuted;
+}
+
+function updateMicTransmissionState() {
+  const canSend = isMicAllowedToTransmit();
+  if (rawMicStream) {
+    rawMicStream.getAudioTracks().forEach(t => {
+      if (t.enabled !== canSend) {
+        t.enabled = canSend;
+      }
+    });
+  }
+  loopbackAudio.muted = !(isLoopback && canSend);
+  meterFill.classList.toggle('muted-bar', !canSend);
+
+  if (micMode === 'ptt') {
+    muteBtn.textContent = canSend ? 'PTT: Активен' : 'PTT: Жду бинд';
+    muteBtn.classList.toggle('active-muted', !canSend);
+  } else {
+    muteBtn.textContent = isMuted ? 'Микро: Выкл' : 'Микро: Вкл';
+    muteBtn.classList.toggle('active-muted', isMuted);
+  }
+}
+
+function handleBindStateChange(pressed) {
+  if (isListeningForBind) return;
+  if (pressed === isBindPressed) return;
+  isBindPressed = pressed;
+
+  if (micMode === 'ptt') {
+    if (pressed) {
+      playFeedbackTone(540, 680, 45);
+    } else {
+      pttReleaseUntil = performance.now() + 180;
+    }
+    updateMicTransmissionState();
+    renderTree();
+  } else {
+    if (pressed) {
+      toggleMuteState();
+    }
+  }
+}
+
+ipcRenderer.on('global-bind-state', (ev, pressed) => {
+  handleBindStateChange(Boolean(pressed));
+});
+
+function formatKeyLabel(e) {
+  if (e.code === 'Space') return 'SPACE';
+  if (e.code === 'CapsLock') return 'CAPSLOCK';
+  if (e.code === 'Tab') return 'TAB';
+  if (e.code === 'Backquote') return '~ (Ё)';
+  if (e.code.startsWith('Key')) return e.code.slice(3);
+  if (e.code.startsWith('Digit')) return e.code.slice(5);
+  if (e.code.startsWith('F') && e.code.length <= 3) return e.code;
+  return (e.key || e.code || 'KEY').toUpperCase();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (document.activeElement === remoteInput) return;
+
+  if (isListeningForBind) {
+    e.preventDefault();
+    if (e.keyCode === 27) {
+      isListeningForBind = false;
+      bindKeyBtn.classList.remove('listening');
+      syncBindUI();
+      return;
+    }
+    bindVk = e.keyCode;
+    bindLabel = formatKeyLabel(e);
+    localStorage.setItem('vh_bind_vk', String(bindVk));
+    localStorage.setItem('vh_bind_label', bindLabel);
+    isListeningForBind = false;
+    bindKeyBtn.classList.remove('listening');
+    syncBindUI();
+    return;
+  }
+
+  if (e.keyCode === bindVk && !e.repeat) {
+    handleBindStateChange(true);
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (document.activeElement === remoteInput) return;
+  if (!isListeningForBind && e.keyCode === bindVk) {
+    handleBindStateChange(false);
+  }
+});
+
+window.addEventListener('mousedown', (e) => {
+  if (isListeningForBind && e.button >= 1) {
+    e.preventDefault();
+    const mapVk = e.button === 1 ? 4 : (e.button === 3 ? 5 : (e.button === 4 ? 6 : 0));
+    if (mapVk > 0) {
+      bindVk = mapVk;
+      bindLabel = e.button === 1 ? 'MOUSE3' : (e.button === 3 ? 'MOUSE4' : 'MOUSE5');
+      localStorage.setItem('vh_bind_vk', String(bindVk));
+      localStorage.setItem('vh_bind_label', bindLabel);
+      isListeningForBind = false;
+      bindKeyBtn.classList.remove('listening');
+      syncBindUI();
+    }
+    return;
+  }
+
+  const curMouseVk = e.button === 1 ? 4 : (e.button === 3 ? 5 : (e.button === 4 ? 6 : 0));
+  if (curMouseVk > 0 && curMouseVk === bindVk) {
+    handleBindStateChange(true);
+  }
+});
+
+window.addEventListener('mouseup', (e) => {
+  const curMouseVk = e.button === 1 ? 4 : (e.button === 3 ? 5 : (e.button === 4 ? 6 : 0));
+  if (curMouseVk > 0 && curMouseVk === bindVk) {
+    handleBindStateChange(false);
+  }
+});
+
+function computeRmsPercent(analyser, buf) {
+  if (!analyser || !buf) return 0;
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) {
+    sum += buf[i] * buf[i];
+  }
+  const rms = Math.sqrt(sum / buf.length);
+  return Math.min(100, Math.round(rms * 380));
+}
+
+setInterval(() => {
+  if (!micAnalyser) return;
+
+  updateMicTransmissionState();
+  const canSend = isMicAllowedToTransmit();
+  const level = computeRmsPercent(micAnalyser, micAnalyserBuf);
+  meterFill.style.width = (canSend ? level : 0) + '%';
+
+  const talkingNow = canSend && level >= 2;
+  const selfNode = document.getElementById('node-' + myId);
+  if (selfNode) {
+    selfNode.classList.toggle('talking', talkingNow);
+  }
+
+  if (talkingNow !== isSelfTalking) {
+    isSelfTalking = talkingNow;
+    peers.forEach(p => {
+      if (p.dc && p.dc.readyState === 'open') {
+        try {
+          p.dc.send(JSON.stringify({ type: 'vad', speaking: isSelfTalking, muted: !canSend }));
+        } catch (e) {}
+      }
+    });
+  }
+
+  peers.forEach((p, id) => {
+    let remoteActive = p.remoteSpeaking;
+    if (p.analyser && p.analyserBuf) {
+      const remLevel = computeRmsPercent(p.analyser, p.analyserBuf);
+      if (remLevel > 2) remoteActive = true;
+    }
+    const row = document.getElementById('node-' + id);
+    if (row) {
+      row.classList.toggle('talking', !isDeafened && Boolean(remoteActive));
+    }
+  });
+}, 30);
+
+function ensurePeerEntry(remoteId) {
+  if (!peers.has(remoteId)) {
+    peers.set(remoteId, {
+      id: remoteId,
+      pc: null,
+      dc: null,
+      audioEl: null,
+      analyser: null,
+      analyserBuf: null,
+      analyserSrc: null,
+      pendingCandidates: [],
+      makingOffer: false,
+      lastSeen: Date.now(),
+      ping: null,
+      muted: false,
+      remoteSpeaking: false,
+      volume: 1.0
+    });
+    playFeedbackTone(520, 780, 110);
+    renderTree();
+  }
+  const entry = peers.get(remoteId);
+  entry.lastSeen = Date.now();
+  return entry;
+}
+
+function setupDataChannel(entry, dc) {
+  entry.dc = dc;
+  dc.onopen = () => {
+    try {
+      dc.send(JSON.stringify({ type: 'ping', ts: Date.now(), muted: !isMicAllowedToTransmit() }));
+    } catch (e) {}
+  };
+  dc.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'ping') {
+        entry.muted = Boolean(msg.muted);
+        dc.send(JSON.stringify({ type: 'pong', ts: msg.ts, muted: !isMicAllowedToTransmit() }));
+      } else if (msg.type === 'pong') {
+        entry.muted = Boolean(msg.muted);
+        entry.ping = Math.max(1, Date.now() - msg.ts);
+        updatePeerStatusBadge(entry);
+      } else if (msg.type === 'vad') {
+        entry.remoteSpeaking = Boolean(msg.speaking);
+        entry.muted = Boolean(msg.muted);
+        updatePeerStatusBadge(entry);
+      }
+    } catch (e) {}
+  };
+}
+
+function updatePeerStatusBadge(entry) {
+  const el = document.getElementById('ping-' + entry.id);
+  if (!el) return;
+  if (entry.muted) {
+    el.textContent = 'Мут';
+  } else if (entry.ping !== null) {
+    el.textContent = entry.ping + ' ms';
+  } else {
+    el.textContent = 'UDP...';
+  }
+}
+
+function createPeerConnection(remoteId) {
+  const entry = ensurePeerEntry(remoteId);
+  if (entry.pc) {
+    try { entry.pc.close(); } catch (e) {}
+  }
+
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  entry.pc = pc;
+  entry.pendingCandidates = [];
+
+  if (rawMicStream) {
+    rawMicStream.getTracks().forEach(track => {
+      pc.addTrack(track, rawMicStream);
+    });
+  }
+
+  pc.onicecandidate = (ev) => {
+    if (ev.candidate && sigClient && sigClient.connected) {
+      sigClient.publish(roomTopic(currentRoom), {
+        type: 'webrtc-ice',
+        from: myId,
+        to: remoteId,
+        candidate: ev.candidate
+      });
+    }
+  };
+
+  pc.ondatachannel = (ev) => {
+    setupDataChannel(entry, ev.channel);
+  };
+
+  pc.ontrack = async (ev) => {
+    const stream = ev.streams && ev.streams[0] ? ev.streams[0] : new MediaStream([ev.track]);
+
+    let audioEl = document.getElementById('peer-audio-' + remoteId);
+    if (!audioEl) {
+      audioEl = document.createElement('audio');
+      audioEl.id = 'peer-audio-' + remoteId;
+      audioEl.autoplay = true;
+      audioBin.appendChild(audioEl);
+    }
+    entry.audioEl = audioEl;
+    audioEl.srcObject = stream;
+    audioEl.muted = isDeafened;
+    audioEl.volume = Math.min(1, entry.volume);
+
+    if (spkSelect.value && typeof audioEl.setSinkId === 'function') {
+      try { await audioEl.setSinkId(spkSelect.value); } catch (e) {}
+    }
+
+    audioEl.play().catch(() => {});
+
+    if (audioCtx) {
+      try {
+        if (entry.analyserSrc) entry.analyserSrc.disconnect();
+        const src = audioCtx.createMediaStreamSource(stream);
+        const an = audioCtx.createAnalyser();
+        an.fftSize = 256;
+        const zero = audioCtx.createGain();
+        zero.gain.value = 0;
+        src.connect(an);
+        an.connect(zero);
+        zero.connect(audioCtx.destination);
+        entry.analyserSrc = src;
+        entry.analyser = an;
+        entry.analyserBuf = new Float32Array(an.fftSize);
+      } catch (e) {}
+    }
+
+    renderTree();
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'connected') {
+      footerText.textContent = 'В звонке • Pure Direct UDP';
+    }
+  };
+
+  return pc;
+}
+
+async function initiateWebRtcOffer(remoteId) {
+  const entry = ensurePeerEntry(remoteId);
+  if (entry.makingOffer) return;
+  try {
+    entry.makingOffer = true;
+    const pc = createPeerConnection(remoteId);
+    const dc = pc.createDataChannel('hud-sync', { ordered: false, maxRetransmits: 0 });
+    setupDataChannel(entry, dc);
+
+    const offer = await pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: false
+    });
+    offer.sdp = enhanceOpusSdp(offer.sdp);
+    await pc.setLocalDescription(offer);
+
+    if (sigClient && sigClient.connected) {
+      sigClient.publish(roomTopic(currentRoom), {
+        type: 'webrtc-sdp',
+        from: myId,
+        to: remoteId,
+        sdp: pc.localDescription
+      });
+    }
+  } catch (e) {} finally {
+    entry.makingOffer = false;
+  }
+}
+
+async function handleSignalingMessage(topic, msg) {
+  if (!msg || !msg.from || msg.from === myId) return;
+  if (topic !== roomTopic(currentRoom)) return;
+
+  const remoteId = msg.from;
+
+  if (msg.type === 'leave') {
+    removePeerEntry(remoteId);
+    return;
+  }
+
+  const isNew = !peers.has(remoteId);
+  const entry = ensurePeerEntry(remoteId);
+
+  if (typeof msg.muted === 'boolean') {
+    entry.muted = msg.muted;
+    updatePeerStatusBadge(entry);
+  }
+
+  if (msg.type === 'join' || isNew) {
+    if (sigClient && sigClient.connected) {
+      sigClient.publish(roomTopic(currentRoom), {
+        type: 'presence',
+        from: myId,
+        muted: !isMicAllowedToTransmit()
+      });
+    }
+  }
+
+  const needsConnection = !entry.pc || entry.pc.connectionState === 'failed' || entry.pc.connectionState === 'closed';
+  if (needsConnection && myId < remoteId && !entry.makingOffer) {
+    initiateWebRtcOffer(remoteId);
+  }
+
+  if (msg.to && msg.to !== myId) return;
+
+  if (msg.type === 'webrtc-sdp' && msg.sdp) {
+    const desc = new RTCSessionDescription(msg.sdp);
+    if (desc.type === 'offer') {
+      const pc = createPeerConnection(remoteId);
+      await pc.setRemoteDescription(desc);
+
+      while (entry.pendingCandidates.length > 0) {
+        const c = entry.pendingCandidates.shift();
+        try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {}
+      }
+
+      const answer = await pc.createAnswer();
+      answer.sdp = enhanceOpusSdp(answer.sdp);
+      await pc.setLocalDescription(answer);
+
+      if (sigClient && sigClient.connected) {
+        sigClient.publish(roomTopic(currentRoom), {
+          type: 'webrtc-sdp',
+          from: myId,
+          to: remoteId,
+          sdp: pc.localDescription
+        });
+      }
+    } else if (desc.type === 'answer' && entry.pc) {
+      if (entry.pc.signalingState === 'have-local-offer') {
+        await entry.pc.setRemoteDescription(desc);
+        while (entry.pendingCandidates.length > 0) {
+          const c = entry.pendingCandidates.shift();
+          try { await entry.pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {}
+        }
+      }
+    }
+  } else if (msg.type === 'webrtc-ice' && msg.candidate) {
+    if (entry.pc && entry.pc.remoteDescription && entry.pc.remoteDescription.type) {
+      try { await entry.pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch (e) {}
+    } else {
+      entry.pendingCandidates.push(msg.candidate);
+    }
+  }
+}
+
+function removePeerEntry(remoteId) {
+  if (!peers.has(remoteId)) return;
+  const entry = peers.get(remoteId);
+  if (entry.pc) {
+    try { entry.pc.close(); } catch (e) {}
+  }
+  if (entry.analyserSrc) {
+    try { entry.analyserSrc.disconnect(); } catch (e) {}
+  }
+  if (entry.audioEl) {
+    entry.audioEl.srcObject = null;
+    entry.audioEl.remove();
+  }
+  peers.delete(remoteId);
+  playFeedbackTone(620, 380, 110);
+  renderTree();
+}
+
+function switchRoom(targetCode) {
+  const clean = targetCode.trim().toUpperCase();
+  if (!clean || clean.length !== 6) return;
+
+  if (sigClient && sigClient.connected && currentRoom) {
+    sigClient.publish(roomTopic(currentRoom), {
+      type: 'leave',
+      from: myId
+    });
+  }
+
+  Array.from(peers.keys()).forEach(id => removePeerEntry(id));
+
+  currentRoom = clean;
+  if (sigClient) {
+    sigClient.clearSubscriptions();
+    sigClient.subscribe(roomTopic(currentRoom));
+    sigClient.publish(roomTopic(currentRoom), {
+      type: 'join',
+      from: myId,
+      muted: !isMicAllowedToTransmit()
+    });
+  }
+
+  playFeedbackTone(480, 720, 100);
+  renderTree();
+}
+
+setInterval(() => {
+  const now = Date.now();
+
+  if (sigClient && sigClient.connected) {
+    sigClient.publish(roomTopic(currentRoom), {
+      type: 'presence',
+      from: myId,
+      muted: !isMicAllowedToTransmit()
+    });
+  }
+
+  peers.forEach(async (entry, id) => {
+    if (now - entry.lastSeen > 9000) {
+      removePeerEntry(id);
+      return;
+    }
+
+    if (entry.dc && entry.dc.readyState === 'open') {
+      try {
+        entry.dc.send(JSON.stringify({ type: 'ping', ts: now, muted: !isMicAllowedToTransmit() }));
+      } catch (e) {}
+    }
+
+    if (entry.pc) {
+      if (entry.pc.connectionState === 'connected') {
+        try {
+          const stats = await entry.pc.getStats();
+          stats.forEach(rep => {
+            if (rep.type === 'candidate-pair' && rep.state === 'succeeded' && typeof rep.currentRoundTripTime === 'number') {
+              entry.ping = Math.max(1, Math.round(rep.currentRoundTripTime * 1000));
+              updatePeerStatusBadge(entry);
+            }
+          });
+        } catch (e) {}
+      } else if ((entry.pc.connectionState === 'failed' || entry.pc.connectionState === 'disconnected') && myId < id) {
+        initiateWebRtcOffer(id);
+      }
+    } else if (myId < id) {
+      initiateWebRtcOffer(id);
+    }
+  });
+
+  const count = peers.size + 1;
+  let sumPing = 0;
+  let pingCnt = 0;
+  peers.forEach(p => {
+    if (p.ping !== null) {
+      sumPing += p.ping;
+      pingCnt++;
+    }
+  });
+  const avg = pingCnt > 0 ? Math.round(sumPing / pingCnt) : '--';
+  telemetryText.textContent = 'PING: ' + avg + ' ms | ' + count + ' В КОМНАТЕ';
+}, 2000);
+
+function renderTree() {
+  treeList.innerHTML = '';
+  const inForeignRoom = currentRoom !== myId;
+  const hasPeers = peers.size > 0;
+
+  if (inForeignRoom || hasPeers) {
+    channelName.textContent = 'Комната ' + currentRoom + ' (' + (peers.size + 1) + ')';
+    footerDot.className = 'footer-dot incall';
+    footerText.textContent = hasPeers ? 'В звонке • Pure Direct UDP' : 'Ожидание друга в ' + currentRoom;
+    mainActionBtn.textContent = 'Выйти';
+    mainActionBtn.classList.add('disconnect-mode');
+    remoteInput.value = currentRoom === myId ? '' : currentRoom;
+    remoteInput.disabled = true;
+  } else {
+    channelName.textContent = 'Твоя комната: ' + myId;
+    footerDot.className = 'footer-dot online';
+    footerText.textContent = 'Онлайн • Готов к звонку';
+    mainActionBtn.textContent = 'Войти';
+    mainActionBtn.classList.remove('disconnect-mode');
+    remoteInput.disabled = false;
+  }
+
+  const canSend = isMicAllowedToTransmit();
+  const selfNode = document.createElement('div');
+  selfNode.className = 'tree-node' + (isSelfTalking ? ' talking' : '');
+  selfNode.id = 'node-' + myId;
+  const selfStatus = isDeafened ? 'Звук выкл' : (canSend ? 'Активен' : (micMode === 'ptt' ? 'Жду [' + bindLabel + ']' : 'Мут'));
+  selfNode.innerHTML = `
+    <div class="node-main">
+      <div class="node-left">
+        <span class="talk-led"></span>
+        <span class="node-id">${myId}</span>
+        <span class="node-role">Ты</span>
+      </div>
+      <div class="node-right">
+        <span>${selfStatus}</span>
+      </div>
+    </div>
+  `;
+  treeList.appendChild(selfNode);
+
+  peers.forEach((entry, id) => {
+    const node = document.createElement('div');
+    node.className = 'tree-node';
+    node.id = 'node-' + id;
+    const volPct = Math.round(entry.volume * 100);
+    const statusText = entry.muted ? 'Мут' : (entry.ping !== null ? entry.ping + ' ms' : 'UDP...');
+
+    node.innerHTML = `
+      <div class="node-main">
+        <div class="node-left">
+          <span class="talk-led"></span>
+          <span class="node-id">${id}</span>
+          <span class="node-role">Друг</span>
+        </div>
+        <div class="node-right">
+          <span id="ping-${id}">${statusText}</span>
+        </div>
+      </div>
+      <div class="node-vol">
+        <span id="vol-label-${id}">Звук ${volPct}%</span>
+        <input type="range" min="0" max="100" value="${volPct}" class="vol-range">
+      </div>
+    `;
+
+    const slider = node.querySelector('.vol-range');
+    const label = node.querySelector('#vol-label-' + id);
+    slider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      label.textContent = 'Звук ' + val + '%';
+      entry.volume = val / 100;
+      if (entry.audioEl) {
+        entry.audioEl.volume = entry.volume;
+      }
+    });
+
+    treeList.appendChild(node);
+  });
+}
+
+function toggleMuteState() {
+  if (micMode === 'ptt') return;
+  isMuted = !isMuted;
+  updateMicTransmissionState();
+  playFeedbackTone(isMuted ? 420 : 580, isMuted ? 310 : 690, 70);
+  renderTree();
+}
+
+modeTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    micMode = tab.dataset.mode;
+    localStorage.setItem('vh_mic_mode', micMode);
+    if (micMode === 'ptt') {
+      isMuted = false;
+    }
+    syncBindUI();
+    updateMicTransmissionState();
+    renderTree();
+  });
+});
+
+bindKeyBtn.addEventListener('click', () => {
+  isListeningForBind = !isListeningForBind;
+  bindKeyBtn.classList.toggle('listening', isListeningForBind);
+  if (isListeningForBind) {
+    bindKeyBtn.textContent = 'Нажми клавишу...';
+  } else {
+    syncBindUI();
+  }
+});
+
+copyCodeBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(myId);
+  myCodeEl.textContent = 'COPIED';
+  setTimeout(() => { myCodeEl.textContent = myId; }, 900);
+});
+
+mainActionBtn.addEventListener('click', () => {
+  const inForeignRoom = currentRoom !== myId;
+  const hasPeers = peers.size > 0;
+
+  if (inForeignRoom || hasPeers) {
+    remoteInput.value = '';
+    switchRoom(myId);
+  } else {
+    const code = remoteInput.value.trim().toUpperCase();
+    if (code.length === 6) {
+      switchRoom(code);
+    }
+  }
+});
+
+remoteInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') mainActionBtn.click();
+});
+
+muteBtn.addEventListener('click', () => {
+  if (micMode === 'ptt') {
+    micMode = 'open';
+    localStorage.setItem('vh_mic_mode', micMode);
+    isMuted = true;
+    syncBindUI();
+    updateMicTransmissionState();
+    renderTree();
+  } else {
+    toggleMuteState();
+  }
+});
+
+deafenBtn.addEventListener('click', () => {
+  isDeafened = !isDeafened;
+  deafenBtn.textContent = isDeafened ? 'Звук: Выкл' : 'Звук: Вкл';
+  deafenBtn.classList.toggle('active-muted', isDeafened);
+  peers.forEach(entry => {
+    if (entry.audioEl) entry.audioEl.muted = isDeafened;
+  });
+  updateMicTransmissionState();
+  renderTree();
+});
+
+noiseBtn.addEventListener('click', async () => {
+  isNoiseClean = !isNoiseClean;
+  noiseBtn.classList.toggle('active-good', isNoiseClean);
+  if (rawMicStream) {
+    const track = rawMicStream.getAudioTracks()[0];
+    if (track && track.applyConstraints) {
+      try {
+        await track.applyConstraints({
+          echoCancellation: false,
+          noiseSuppression: isNoiseClean,
+          autoGainControl: false
+        });
+      } catch (e) {}
+    }
+  }
+});
+
+loopbackBtn.addEventListener('click', () => {
+  isLoopback = !isLoopback;
+  loopbackBtn.classList.toggle('active-good', isLoopback);
+  loopbackBtn.textContent = isLoopback ? 'Тест: Вкл' : 'Тест';
+  updateMicTransmissionState();
+});
+
+devBtn.addEventListener('click', () => {
+  devicesDrawer.classList.toggle('open');
+  devBtn.classList.toggle('active-good', devicesDrawer.classList.contains('open'));
+});
+
+micSelect.addEventListener('change', () => {
+  initAudioEngine(micSelect.value);
+});
+
+spkSelect.addEventListener('change', () => {
+  const sinkId = spkSelect.value;
+  if (typeof loopbackAudio.setSinkId === 'function') {
+    loopbackAudio.setSinkId(sinkId).catch(() => {});
+  }
+  peers.forEach(entry => {
+    if (entry.audioEl && typeof entry.audioEl.setSinkId === 'function') {
+      entry.audioEl.setSinkId(sinkId).catch(() => {});
+    }
+  });
+});
+
+async function startApp() {
+  try {
+    await initAudioEngine();
+    await refreshAudioDevices();
+  } catch (e) {
+    footerText.textContent = 'Ошибка доступа к микрофону';
+    return;
+  }
+
+  sigClient = new SignalingClient(
+    [
+      'wss://broker.emqx.io:8084/mqtt',
+      'wss://broker.hivemq.com:8884/mqtt',
+      'wss://test.mosquitto.org:8081/mqtt'
+    ],
+    handleSignalingMessage,
+    (online) => {
+      mainActionBtn.disabled = !online;
+      if (online) {
+        sigClient.subscribe(roomTopic(currentRoom));
+        sigClient.publish(roomTopic(currentRoom), {
+          type: 'join',
+          from: myId,
+          muted: !isMicAllowedToTransmit()
+        });
+        renderTree();
+      } else {
+        footerDot.className = 'footer-dot';
+        footerText.textContent = 'Переподключение...';
+      }
+    }
+  );
+
+  renderTree();
+}
+
+startApp();
+</script>
+</body>
+</html>
